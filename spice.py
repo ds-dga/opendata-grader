@@ -44,13 +44,15 @@ def get_uptime_record_for(url):
     return resp.status_code, resp_msg
 
 
-def create_uptime_record(name, url, group="opendata", frequency=""):
+def create_uptime_record(name, url, group="opendata", frequency="", extras=None):
     body = {
         "name": name,
         "url": url,
         "group": group,
         "frequency": frequency,
     }
+    if extras:
+        body['extras'] = extras
     resp = sess.post(f"{SPICE_UPTIME_URL}?url={url}", json=body)
     resp_msg = None
     try:

@@ -13,8 +13,9 @@ from spice import (
     uptime_record_test,
     is_real_api,
 )
+import logging
 
-
+logger = logging.getLogger('resource_api')
 db = Database()
 
 
@@ -47,11 +48,10 @@ def process_api_resources():
     for i in records:
         row = dict(zip(fields, i))
         url = row["url"]
-        print(url)
         # check if it's real API?
         is_valid, ct = is_real_api(url)
-        print(f"   > {'[ / ]' if is_valid else '[ X ]'} {ct}")
         if not is_valid:
+            logger.info(f"  {url} > {'[ X ]'} {ct}")
             # update to F
             db.resource_grade_update(row["id"], "f")
             bad += 1
@@ -61,15 +61,19 @@ def process_api_resources():
             db.resource_grade_update(row["id"], None)
 
         has_record = False
-        status_code, _ = get_uptime_record_for(url)
+        status_code, rec = get_uptime_record_for(url)
         c = None
         if status_code == 404:
             # need to create a record
-            c, _ = create_uptime_record(row["name"], row["url"])
+            extras = {
+                'package_id': row['package_id'],
+                'resource_id': row['resource_id'],
+            }
+            c, _ = create_uptime_record(row["name"], row["url"], "opendata", "", extras)
             if c == 201:
                 created += 1
                 has_record = True
-        elif status_code == 200:
+        elif status_code == 200 and rec is not None:
             has_record = True
 
         if has_record:
@@ -77,14 +81,13 @@ def process_api_resources():
             uptime_record_test(url)
             stats_update += 1
         else:
-            print(" !!! no record: ", url, c)
+            logger.error(f"  {url} > no record? {c}/{status_code}")
             no_record += 1
 
-        # if created > 10 or stats_update > 10:
-        #     break
-
     print(
-        f"API resource created #{created} stats update #{stats_update} bad #{bad} no record #{no_record}"
+        f"API resource created #{created} "
+        f"stats update #{stats_update} "
+        f"bad #{bad} no record #{no_record}"
     )
     return {
         "created": created,
