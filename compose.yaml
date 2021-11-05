@@ -1,0 +1,7 @@
+version: "3"
+
+services:
+  grader:
+    image: dk-reg.10ninox.com/ds-dga/opendata-grader:latest
+    environment:
+      - POSTGRES_URI=${POSTGRES_URI}
